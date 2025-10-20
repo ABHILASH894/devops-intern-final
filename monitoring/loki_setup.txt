@@ -1,0 +1,39 @@
+# Loki Setup Instructions
+
+## 1. How I Started Loki
+
+I pulled and ran the official Grafana Loki Docker image:
+
+docker pull grafana/loki:latest
+
+Then started Loki locally on port 3100:
+
+docker run -d --name=loki -p 3100:3100 grafana/loki:latest
+
+To verify Loki was running, I checked its readiness endpoint:
+
+curl http://18.191.51.164:3100/ready
+# Response: ready
+
+## 2. Log Forwarding Setup
+I forwarded logs from my Nomad deployed container using a manual curl push:
+
+curl -X POST http://18.191.51.164:3100/api/prom/push \
+  -H "Content-Type: application/json" \
+  -d '{
+    "streams": [
+      {
+        "stream": {
+          "job": "hello-devops"
+        },
+        "values": [
+          [ "'$(date +%s%N)'", "'"$(docker logs <container-id> 2>&1 | tail -n 1)"'" ]
+        ]
+      }
+    ]
+  }'
+
+Replace `<container-id>` with the actual container ID of your from `docker ps`.
+
+## 3. Viewing Logs
+Logs were pushed to Loki and can be viewed by integrating with Grafana or querying Loki’s API.
